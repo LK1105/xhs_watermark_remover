@@ -1,0 +1,77 @@
+#!name=小红书去广告（搜索修复版）
+#!desc=基于 RuCu6 / fmz200 开源基线重建；移除了导致搜索失败的搜索页广告脚本，其余去广告、去水印功能完整保留
+#!author=RuCu6, fmz200
+#!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/RedPaper.png
+#!date=2026-10-04 21:00:00
+
+# 说明:
+# - 原插件 RedPaper_remove_ads.lpx 中的"移除搜索页广告"脚本会改写 /v10/search/notes 返回,
+#   小红书更新接口格式后该脚本会清空所有搜索结果,导致 App 提示搜索失败。本版直接去掉了这一条,
+#   搜索请求将原样通过,搜索功能恢复正常(代价:搜索结果页的广告不再过滤)。
+# - 其余 13 条脚本 + 5 条 Map Local + 5 条搜索页净化 jq + QUIC 规则与原版一致。
+
+[Rule]
+
+# 小红书 QUIC 拒绝(与原版一致),强制走 TCP,避免代理下 QUIC 异常
+AND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,xiaohongshu.com)),REJECT
+
+[Rewrite]
+
+# ---- Map Local:水印 / 开屏 / 营销弹窗直接返回空 ----
+^https:\/\/ci\.xiaohongshu\.com\/system_config\/watermark reject-img
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/surprisebox\/(?:get_style|open|submit_action) reject-dict
+^https:\/\/www\.xiaohongshu\.com\/api\/marketing\/box\/trigger\? reject-dict
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v2\/guide\/user_banner|v3\/note\/guide) reject-dict
+^https:\/\/www\.xiaohongshu\.com\/api\/sns\/(?:v1\/ads\/resource|v2\/hey\/\w+\/hey_gallery) reject-dict
+
+# ---- 搜索页 banner / 热搜词 / 联想词净化(jq,只清空可选字段,不会破坏搜索) ----
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/banner_list$ response-body-json-jq 'if (getpath([]) | has("data")) then (setpath(["data"]; {})) else . end'
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/search\/hot_list$ response-body-json-jq 'if (getpath(["data"]) | has("items")) then (setpath(["data","items"]; [])) else . end'
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/hint response-body-json-jq 'if (getpath(["data"]) | has("hint_words")) then (setpath(["data","hint_words"]; [])) else . end'
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\? response-body-json-jq 'if (getpath(["data"]) | has("queries")) then (setpath(["data","queries"]; [])) else . end'
+^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/search\/trending\? response-body-json-jq 'if (getpath(["data"]) | has("hint_word")) then (setpath(["data","hint_word"]; {})) else . end'
+
+[Script]
+
+# 移除实况照片水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/note\/live_photo\/save script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除实况照片水印
+
+# 移除整体配置 ui
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/service\/ui\/config\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除整体配置ui
+
+# 移除开屏广告 config
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system_service\/config\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告config
+
+# 移除开屏广告 splash_config
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/system_service\/splash_config script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告splash_config
+
+# 移除详情页小部件、关注页感兴趣的人
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/(?:note\/widgets|user\/followings\/followfeed) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页小部件
+
+# 移除关注页信息流广告
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/followfeed\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除关注页信息流广告
+
+# 移除详情页感兴趣的人
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v5\/recommend\/user\/follow_recommend\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页感兴趣的人
+
+# 移除评论区实况照片水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v1\/interaction\/comment\/video\/download|v5\/note\/comment\/list) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除评论区实况照片水印
+
+# 移除旧版图片和视频水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v2\/note\/feed|v3\/note\/videofeed) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除旧版图片和视频水印
+
+# 处理视频保存
+http-response ^https:\/\/(?:edith|rec|www)\.xiaohongshu\.com\/api\/sns\/v10\/note\/video\/save script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=处理视频保存
+
+# 移除信息流广告(首页发现流)
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v6\/homefeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流广告
+
+# 移除信息流视频广告(上下刷视频流)
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v4\/note\/videofeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流视频广告
+
+# 移除图片流水印(图片笔记流)
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v1\/note\/imagefeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除图片流水印
+
+[MITM]
+
+hostname = ci.xiaohongshu.com, edith.xiaohongshu.com, rec.xiaohongshu.com, so.xiaohongshu.com, www.xiaohongshu.com
