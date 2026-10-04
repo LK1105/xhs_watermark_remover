@@ -1,14 +1,15 @@
-#!name=小红书去广告（搜索修复版）
-#!desc=基于 RuCu6 / fmz200 开源基线重建；移除了导致搜索失败的搜索页广告脚本，其余去广告、去水印功能完整保留
+#!name=小红书去广告（修复版）
+#!desc=基于 RuCu6 / fmz200 开源基线；搜索页广告脚本已修复（接口格式变化时不再清空搜索结果）；脚本文件自托管，不再依赖 kelee.one
 #!author=RuCu6, fmz200
 #!icon=https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/RedPaper.png
-#!date=2026-10-04 21:00:00
+#!date=2026-10-05 01:45:00
 
 # 说明:
 # - 原插件 RedPaper_remove_ads.lpx 中的"移除搜索页广告"脚本会改写 /v10/search/notes 返回,
-#   小红书更新接口格式后该脚本会清空所有搜索结果,导致 App 提示搜索失败。本版直接去掉了这一条,
-#   搜索请求将原样通过,搜索功能恢复正常(代价:搜索结果页的广告不再过滤)。
-# - 其余 13 条脚本 + 5 条 Map Local + 5 条搜索页净化 jq + QUIC 规则与原版一致。
+#   小红书更新接口格式后该脚本会清空所有搜索结果,导致 App 提示搜索失败。
+#   本版脚本已做防御性修复:仅当过滤后仍有数据时才替换,否则保留原始数据,搜索永远可用。
+# - 2026-10-05:脚本改由本仓库自托管(raw.githubusercontent.com),不再从 kelee.one 拉取,
+#   避免 kelee.one 访问不稳定导致脚本 hang 住拖慢请求。
 
 [Rule]
 
@@ -34,43 +35,46 @@ AND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,xiaohongshu.com)),REJECT
 [Script]
 
 # 移除实况照片水印
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/note\/live_photo\/save script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除实况照片水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/note\/live_photo\/save script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除实况照片水印
 
 # 移除整体配置 ui
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/service\/ui\/config\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除整体配置ui
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system\/service\/ui\/config\? script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除整体配置ui
 
 # 移除开屏广告 config
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system_service\/config\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告config
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v1\/system_service\/config\? script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告config
 
 # 移除开屏广告 splash_config
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/system_service\/splash_config script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告splash_config
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/system_service\/splash_config script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除开屏广告splash_config
 
 # 移除详情页小部件、关注页感兴趣的人
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/(?:note\/widgets|user\/followings\/followfeed) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页小部件
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v2\/(?:note\/widgets|user\/followings\/followfeed) script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页小部件
 
 # 移除关注页信息流广告
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/followfeed\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除关注页信息流广告
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v4\/followfeed\? script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除关注页信息流广告
 
 # 移除详情页感兴趣的人
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v5\/recommend\/user\/follow_recommend\? script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页感兴趣的人
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/v5\/recommend\/user\/follow_recommend\? script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除详情页感兴趣的人
 
 # 移除评论区实况照片水印
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v1\/interaction\/comment\/video\/download|v5\/note\/comment\/list) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除评论区实况照片水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v1\/interaction\/comment\/video\/download|v5\/note\/comment\/list) script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除评论区实况照片水印
 
 # 移除旧版图片和视频水印
-http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v2\/note\/feed|v3\/note\/videofeed) script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除旧版图片和视频水印
+http-response ^https:\/\/edith\.xiaohongshu\.com\/api\/sns\/(?:v2\/note\/feed|v3\/note\/videofeed) script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除旧版图片和视频水印
 
 # 处理视频保存
-http-response ^https:\/\/(?:edith|rec|www)\.xiaohongshu\.com\/api\/sns\/v10\/note\/video\/save script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=处理视频保存
+http-response ^https:\/\/(?:edith|rec|www)\.xiaohongshu\.com\/api\/sns\/v10\/note\/video\/save script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=处理视频保存
 
 # 移除信息流广告(首页发现流)
-http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v6\/homefeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流广告
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v6\/homefeed script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流广告
 
 # 移除信息流视频广告(上下刷视频流)
-http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v4\/note\/videofeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流视频广告
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v4\/note\/videofeed script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除信息流视频广告
 
 # 移除图片流水印(图片笔记流)
-http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v1\/note\/imagefeed script-path=https://kelee.one/Resource/JavaScript/RedPaper/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除图片流水印
+http-response ^https:\/\/(?:edith|rec)\.xiaohongshu\.com\/api\/sns\/v1\/note\/imagefeed script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除图片流水印
+
+# 移除搜索页广告(已修复:接口格式变化时保留原始数据,不会再清空搜索结果)
+http-response ^https:\/\/(?:edith|so)\.xiaohongshu\.com\/api\/sns\/v10\/search\/notes\? script-path=https://raw.githubusercontent.com/LK1105/xhs_watermark_remover/main/RedPaper_remove_ads.js, requires-body=true, timeout=60, tag=移除搜索页广告
 
 [MITM]
 
