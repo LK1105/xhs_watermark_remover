@@ -12,9 +12,9 @@
 #   避免 kelee.one 访问不稳定导致脚本 hang 住拖慢请求。
 
 [Rule]
-
-# 小红书 QUIC 拒绝(与原版一致),强制走 TCP,避免代理下 QUIC 异常
-AND,((PROTOCOL,QUIC),(DOMAIN-SUFFIX,xiaohongshu.com)),REJECT
+# 2026-10-05:已移除原版的 QUIC 拒绝规则。原因:小红书走 DIRECT 直连,QUIC 本来工作正常;
+# 该规则拦掉 QUIC 后,App 要等 QUIC 握手超时(约 4-7 秒)才回退 TCP,表现为搜索慢/搜不出。
+# 关 Loon 则 QUIC 正常,所以快。直连下无需干预 QUIC。
 
 [Rewrite]
 
